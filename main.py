@@ -91,11 +91,11 @@ def main():
   new_df.to_csv('new.csv', index=False)
 
 def test():
-  df = pd.read_csv('./djmix-structure-tracks.csv')
+  #df = pd.read_csv('./djmix-structure-tracks.csv')
   df = pd.read_csv('./new.csv')
   #df = df[df['ok'] != 'x']
 
   print(df)
 if __name__ == "__main__":
-  #main()
-  test()
+  main()
+  #test()
