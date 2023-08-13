@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from url_normalize import url_normalize
 import requests
 import urllib.parse
 import json
@@ -6,6 +7,7 @@ import pandas as pd
 import time
 
 URL = "https://www.beatport.com/search?q="
+URL_TEMPLETE = "https://www.beatport.com/track/%s/%d"
 
 def crawl(song_name):
   headers = {
@@ -14,15 +16,15 @@ def crawl(song_name):
   res = requests.get(URL + urllib.parse.quote_plus(song_name), headers=headers)
 
   if res.status_code != 200:
-    genre = bpm = key = track_name = artist = length_string = "[-] error : statue code %d" % res.status_code
-    return genre, bpm, key, track_name, artist, length_string
+    genre = bpm = key = track_name = artist = length_string = b_url = "[-] error : statue code %d" % res.status_code
+    return genre, bpm, key, track_name, artist, length_string, b_url
 
   soup = BeautifulSoup(res.text, "html.parser")
   data_json = json.loads(soup.find("script", id="__NEXT_DATA__").text)
   try:
     data = data_json["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["tracks"]["data"][0]
   except IndexError:
-    return "null", "null", "null", "null", "null", "null"
+    return "null", "null", "null", "null", "null", "null", "null"
 
   try:
     genre = data["genre"][0]["genre_name"]
@@ -63,7 +65,9 @@ def crawl(song_name):
   except:
     length_string = "length unavailable"
 
-  return genre, bpm, key, track_name, artist, length_string
+  b_url = (URL_TEMPLETE % (data["track_name"], data["track_id"]))
+
+  return genre, bpm, key, track_name, artist, length_string, url_normalize(b_url)
 
 def main():
   df = pd.read_csv('./djmix-structure-tracks.csv')
@@ -73,7 +77,7 @@ def main():
   new_rows = []
 
   for index, row in df.iterrows():
-    genre, bpm, key, track_name, artist, length_string = crawl(str(row["title"]))
+    genre, bpm, key, track_name, artist, length_string, b_url = crawl(str(row["title"]))
     new_row = row.copy()
     new_row["beatport_genre"] = genre
     new_row["bpm"] = bpm
@@ -81,10 +85,11 @@ def main():
     new_row["track_name"] = track_name
     new_row["artist"] = artist
     new_row["length"] = length_string
+    new_row["beatport_url"] = b_url
     new_rows.append(new_row)
     print(i)
     i = i + 1
-    time.sleep(1)
+    time.sleep(0.5)
 
   new_df = pd.DataFrame(new_rows)
 
@@ -93,9 +98,7 @@ def main():
 def test():
   #df = pd.read_csv('./djmix-structure-tracks.csv')
   df = pd.read_csv('./new.csv')
-  #df = df[df['ok'] != 'x']
-
   print(df)
+
 if __name__ == "__main__":
   main()
-  #test()
