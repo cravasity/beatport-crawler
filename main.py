@@ -16,40 +16,28 @@ def crawl(song_name):
   res = requests.get(URL + urllib.parse.quote_plus(song_name), headers=headers)
 
   if res.status_code != 200:
-    genre = bpm = key = track_name = artist = length_string = b_url = "[-] error : statue code %d" % res.status_code
-    return genre, bpm, key, track_name, artist, length_string, b_url
+    errormessage = "[-] error : statue code %d" % res.status_code
+    return error(errormessage)
 
   soup = BeautifulSoup(res.text, "html.parser")
   data_json = json.loads(soup.find("script", id="__NEXT_DATA__").text)
+
   try:
     data = data_json["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["tracks"]["data"][0]
   except IndexError:
-    return "null", "null", "null", "null", "null", "null", "null"
-
-  try:
-    genre = data["genre"][0]["genre_name"]
-  except:
-    genre = "genre unavailable"
+    errormessage = "IndexError"
+    return error(errormessage)
+  
+  genre = data["genre"][0]["genre_name"]
+  key = data["key_name"]
+  track_name = data["track_name"]
+  artist = data["artists"][0]["artist_name"]
+  b_url = (URL_TEMPLETE % (data["track_name"], data["track_id"]))
 
   try:
     bpm = data["bpm"]
   except:
     bpm = "bpm unavailable"
-
-  try:
-    key = data["key_name"]
-  except:
-    key = "key unavailable"
-
-  try:
-    track_name = data["track_name"]
-  except:
-    track_name = "track name unavailable"
-
-  try:
-    artist = data["artists"][0]["artist_name"]
-  except:
-    artist = "artist unavailable"
 
   try:
     length = data["length"]
@@ -65,9 +53,10 @@ def crawl(song_name):
   except:
     length_string = "length unavailable"
 
-  b_url = (URL_TEMPLETE % (data["track_name"], data["track_id"]))
+  return genre, bpm, key, track_name, artist, length_string, url_normalize(b_url) 
 
-  return genre, bpm, key, track_name, artist, length_string, url_normalize(b_url)
+def error(errormessage):
+  return errormessage, errormessage, errormessage, errormessage, errormessage, errormessage, errormessage
 
 def main():
   df = pd.read_csv('./djmix-structure-tracks.csv')
@@ -87,9 +76,9 @@ def main():
     new_row["length"] = length_string
     new_row["beatport_url"] = b_url
     new_rows.append(new_row)
-    print(i)
+    print(i, "th iteration complete")
     i = i + 1
-    time.sleep(0.5)
+    time.sleep(0.1)
 
   new_df = pd.DataFrame(new_rows)
 
