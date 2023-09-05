@@ -58,15 +58,27 @@ def crawl(song_name):
 def error(errormessage):
   return errormessage, errormessage, errormessage, errormessage, errormessage, errormessage, errormessage
 
+def title_normalize(title):
+  if (title.endswith(")") or title.endswith("]")):
+    result = ""
+    for char in title:
+      result += char
+      if(char == ")" or char == "]"):
+        break
+    return result
+
+  else:
+    return title
+
 def main():
-  df = pd.read_csv('./djmix-structure-tracks.csv')
+  df = pd.read_csv('./data/djmix-structure-tracks.csv')
   df = df[df['ok'] != 'x']
   i = 1
 
   new_rows = []
 
   for index, row in df.iterrows():
-    genre, bpm, key, track_name, artist, length_string, b_url = crawl(str(row["title"]))
+    genre, bpm, key, track_name, artist, length_string, b_url = crawl(title_normalize(str(row["title"])))
     new_row = row.copy()
     new_row["beatport_genre"] = genre
     new_row["bpm"] = bpm
@@ -82,11 +94,12 @@ def main():
 
   new_df = pd.DataFrame(new_rows)
 
-  new_df.to_csv('new.csv', index=False)
+  new_df.to_csv('./data/new.csv', index=False)
 
 def test():
-  #df = pd.read_csv('./djmix-structure-tracks.csv')
-  df = pd.read_csv('./new.csv')
+  df = pd.read_csv('./data/djmix-structure-tracks.csv')
+  #df = pd.read_csv('./new.csv')
+  df = df.head()
   print(df)
 
 if __name__ == "__main__":
